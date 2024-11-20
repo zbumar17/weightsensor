@@ -37,7 +37,7 @@ def calibrate_scale(known_weight):
 
         # Ensure tare scale is performed
         raw_readings = []
-        for _ in range(10):
+        for _ in range(10):  # Take 10 readings for calibration
             raw_readings.append(hx.get_raw_data_mean())
             time.sleep(0.1)
 
@@ -57,7 +57,6 @@ def get_weight_filtered():
             if reading is not None:
                 readings.append(reading)
             time.sleep(0.1)  # Add delay between readings to reduce noise
-
         if len(readings) < 10:
             raise ValueError("Not enough valid readings for filtering")
 
@@ -70,7 +69,7 @@ def get_weight_filtered():
         weight = sum(filtered_readings) / len(filtered_readings)
         print("Average weight (in grams):", weight)
 
-        weight_kg = weight / 1000
+        weight_kg = (weight - zero_offset) / calibration_factor / 1000  # Apply zero_offset and calibration_factor
         print(f"Weight (filtered): {weight_kg:.2f} kg")
         return weight_kg
     except Exception as e:
