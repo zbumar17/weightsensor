@@ -18,34 +18,34 @@ def tare_scale():
         time.sleep(2)  # Allow some time for the sensor to stabilize
 
         raw_readings = []
-        for _ in range(10):  # Take 10 readings to get the tare value
-            raw_readings.append(hx.get_raw_data_mean())
-            time.sleep(0.1)
+        for _ in range(50):
+            reading = hx.get_raw_data_mean()
+            if reading is not None:
+                raw_readings.append(reading)
+            time.sleep(0.1)  # Add delay between readings to reduce noise
 
-        print("Raw readings for tare:", raw_readings)
-        zero_offset = sum(raw_readings) / len(raw_readings)
+        if not raw_readings:
+            raise ValueError("Failed to get valid readings during taring.")
+
+        zero_offset = int(sum(raw_readings) / len(raw_readings))
+        hx.set_offset(zero_offset)
         print(f"Taring complete. Zero offset: {zero_offset}")
-
     except Exception as e:
-        print(f"Error during tare operation: {e}")
-
-def calibrate_scale(known_weight):
-    global calibration_factor
+        print(f"Error during tare: {e}")
+def calibrate_scale(known_weight_grams):
     try:
-        print(f"Calibrating the scale with known weight: {known_weight} kg")
-        tare_scale()
+        hx.set_scale_ratio(1)
+        time.sleep(2)  # Allow some time for the sensor to stabilize
 
-        # Ensure tare scale is performed
-        raw_readings = []
-        for _ in range(10):  # Take 10 readings for calibration
-            raw_readings.append(hx.get_raw_data_mean())
-            time.sleep(0.1)
+        raw_value = hx.get_weight_mean(readings=20)
+        if raw_value is None:
+            raise ValueError("Failed to get valid data from HX711")
 
-        print("Raw readings for calibration:", raw_readings)
-        average_raw_data = sum(raw_readings) / len(raw_readings)
-        calibration_factor = average_raw_data / known_weight  # Update calibration factor
+        global calibration_factor
+        calibration_factor = abs(raw_value / known_weight_grams)
         print(f"Calibration complete. Calibration factor: {calibration_factor}")
 
+        hx.set_scale_ratio(calibration_factor)
     except Exception as e:
         print(f"Error during calibration: {e}")
 
@@ -57,19 +57,16 @@ def get_weight_filtered():
             if reading is not None:
                 readings.append(reading)
             time.sleep(0.1)  # Add delay between readings to reduce noise
+
         if len(readings) < 10:
             raise ValueError("Not enough valid readings for filtering")
 
         readings.sort()
         filtered_readings = readings[len(readings) // 10: -len(readings) // 10]
 
-        print("Sorted readings:", readings)
-        print("Filtered readings:", filtered_readings)
-
         weight = sum(filtered_readings) / len(filtered_readings)
-        print("Average weight (in grams):", weight)
+        weight_kg = weight / 1000
 
-        weight_kg = (weight - zero_offset) / calibration_factor / 1000  # Apply zero_offset and calibration_factor
         print(f"Weight (filtered): {weight_kg:.2f} kg")
         return weight_kg
     except Exception as e:
@@ -78,8 +75,7 @@ def get_weight_filtered():
 
 if __name__ == '__main__':
     tare_scale()
-    calibrate_scale(1000)  # Assuming 1kg as the known weight for calibration
-
+    calibrate_scale(1000)
     while True:
-        get_weight_filtered()  # Get filtered weight and print the result
+        get_weight_filtered()
         time.sleep(2)
