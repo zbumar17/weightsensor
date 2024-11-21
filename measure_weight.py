@@ -91,7 +91,7 @@ def get_distance() -> float:
     distance = (pulse_duration * 34300) / 2
     return round(distance, 1)
 
-def get_temperature_humidity() -> Dict[str, Union[float, str]]]:
+def get_temperature_humidity() -> Dict[str, Union[float, str]]:
     """Get temperature and humidity readings from the DHT11 sensor."""
     try:
         return {"temperature": dht_device.temperature, "humidity": dht_device.humidity}
