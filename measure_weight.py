@@ -2,6 +2,7 @@ import logging
 import time
 from typing import Dict, Union
 import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
 from hx711 import HX711
 from dht11 import DHT11
 import math
