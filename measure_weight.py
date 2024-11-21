@@ -33,45 +33,49 @@ dht_device = adafruit_dht.DHT11(DHT_PIN)
 hx = HX711(dout_pin=HX_DOUT_PIN, pd_sck_pin=HX_SCK_PIN)
 
 # Sensor calibration
-tare_offset = 159054  # Existing tare offset
+tare_offset = 159054  # Set to your initial tare offset
 hx.set_offset(tare_offset)
-hx.set_scale_ratio(102.372)  # Set the scale ratio (this might need recalibration)
+hx.set_scale_ratio(102.372)  # Adjust scale ratio if necessary
 
-# Function to perform tare
 def tare_scale():
-    """Tare the scale (set zero offset)."""
-    hx.tare()  # Tare the sensor
-    logging.info(f"Tare complete. Offset: {hx.offset}")
-    time.sleep(1)
+    global tare_offset
+    try:
+        logging.info("Taring the scale... Please make sure it's empty and stable.")
+        hx.reset()  # Reset HX711
+        time.sleep(2)  # Allow sensor to stabilize
 
-# Function to calibrate scale using known weight
+        raw_readings = []
+        for _ in range(10):  # Take 10 readings to get a stable tare value
+            raw_readings.append(hx.get_raw_data_mean())
+            time.sleep(0.1)
+
+        logging.info(f"Raw readings for tare: {raw_readings}")
+        tare_offset = sum(raw_readings) / len(raw_readings)  # Calculate average for tare offset
+        logging.info(f"Taring complete. Zero offset: {tare_offset}")
+
+        hx.set_offset(tare_offset)  # Manually set tare offset
+    except Exception as e:
+        logging.error(f"Error during tare operation: {e}")
+
 def calibrate_scale(known_weight: float):
-    """Calibrate scale using a known weight (in kg)."""
-    logging.info(f"Calibrating scale with known weight: {known_weight} kg")
-    tare_scale()  # Perform tare first
+    global tare_offset
+    try:
+        logging.info(f"Calibrating scale with known weight: {known_weight} kg")
+        tare_scale()  # Perform tare first
 
-    raw_data = hx.get_raw_data_mean()  # Get raw data for calibration
-    logging.info(f"Raw data: {raw_data}")
+        raw_readings = []
+        for _ in range(10):  # Take 10 readings to calibrate the scale
+            raw_readings.append(hx.get_raw_data_mean())
+            time.sleep(0.1)
 
-    scale_ratio = raw_data / (known_weight * 1000)  # Convert known weight to grams
-    hx.set_scale_ratio(scale_ratio)
-    logging.info(f"Calibration complete. Scale ratio: {scale_ratio}")
+        logging.info(f"Raw readings for calibration: {raw_readings}")
+        average_raw_data = sum(raw_readings) / len(raw_readings)
+        calibration_factor = average_raw_data / known_weight  # Calculate calibration factor
+        logging.info(f"Calibration complete. Calibration factor: {calibration_factor}")
 
-# Get weight from the sensor
-def get_weight() -> float:
-    """Retrieve weight from HX711 sensor."""
-    raw_data = hx.get_raw_data_mean()
-    logging.info(f"Raw data from HX711: {raw_data}")
-
-    weight = hx.get_weight_mean(readings=10)
-    if weight is not None:
-        logging.info(f"Weight (grams): {weight}")
-        return weight / 1000  # Convert to kg
-    else:
-        logging.error("Failed to read weight from HX711.")
-        return None
-
-# Other sensor functions (distance, temperature, etc.)
+        hx.set_scale_ratio(calibration_factor)  # Set the calculated scale ratio
+    except Exception as e:
+        logging.error(f"Error during calibration: {e}")
 
 def get_distance() -> float:
     """Measure the distance using the ultrasonic sensor."""
@@ -107,7 +111,11 @@ def is_hive_open() -> bool:
     """Check if the hive is open based on light levels."""
     return GPIO.input(LIGHT_PIN) == GPIO.HIGH
 
-# Function to read sensors continuously
+def get_weight() -> float:
+    """Retrieve weight from HX711 sensor."""
+    weight = hx.get_weight_mean(readings=5)
+    return weight / 1000  # Convert to kg
+
 def read_sensors():
     """Continuously read all sensor data."""
     while True:
@@ -124,12 +132,14 @@ def read_sensors():
         time.sleep(1.0)  # Adjust the interval as needed
 
 if __name__ == '__main__':
-    # Calibrate scale (use 1 kg for calibration)
-    calibrate_scale(1)  # Assuming 1 kg known weight
+    # Calibrate scale with a known weight of 1 kg
+    calibrate_scale(1)  # Assuming 1 kg known weight for calibration
+
+    # Start reading sensor data in a separate thread
     sensor_thread = threading.Thread(target=read_sensors)
     sensor_thread.daemon = True
     sensor_thread.start()
-    
+
     # Keep the main thread alive
     try:
         while True:
