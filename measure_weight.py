@@ -2,10 +2,8 @@ import logging
 import time
 from typing import Dict, Union
 import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
 from hx711 import HX711
 from dht11 import DHT11
-import math
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -74,8 +72,12 @@ def get_weight() -> float:
     """
     try:
         raw_data = hx.get_raw_data()
-        weight = sum(raw_data) / len(raw_data) * calibration_factor
-        return weight
+        if raw_data:
+            weight = sum(raw_data) / len(raw_data) * calibration_factor
+            return weight
+        else:
+            logging.warning("No raw data received from HX711.")
+            return 0.0
     except Exception as e:
         logging.error(f"Error during weight reading: {e}")
         return 0.0
