@@ -3,7 +3,7 @@ import time
 from typing import Dict, Union
 import RPi.GPIO as GPIO
 from hx711 import HX711
-from DHT11 import DHT11
+from dht11 import DHT11
 import math
 
 # Set up logging
