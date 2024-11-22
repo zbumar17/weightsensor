@@ -11,20 +11,21 @@ calibration_factor = 0
 zero_offset = 0
 
 def tare_scale():
+    """Tare the scale by setting the zero offset."""
     global zero_offset
     try:
         print("Taring the scale... Please make sure it's empty and stable.")
         hx.reset()
-        time.sleep(2)  # Allow some time for the sensor to stabilize
+        time.sleep(2)
 
         raw_readings = []
         for _ in range(50):
             reading = hx.get_raw_data_mean()
             if reading is not None:
                 raw_readings.append(reading)
-            time.sleep(0.1)  # Add delay between readings to reduce noise
+            time.sleep(0.1)
 
-        if not raw_readings:
+        if len(raw_readings) == 0:
             raise ValueError("Failed to get valid readings during taring.")
 
         zero_offset = int(sum(raw_readings) / len(raw_readings))
@@ -34,13 +35,17 @@ def tare_scale():
         print(f"Error during tare: {e}")
 
 def calibrate_scale(known_weight_grams):
+    """Calibrate the scale with a known weight."""
     try:
-        hx.set_scale_ratio(1)
-        time.sleep(2)  # Allow some time for the sensor to stabilize
+        if zero_offset == 0:
+            raise ValueError("Tare must be completed before calibration.")
+
+        hx.set_scale_ratio(1)  # Temporarily set scale to 1
+        time.sleep(2)
 
         raw_value = hx.get_weight_mean(readings=20)
         if raw_value is None:
-            raise ValueError("Failed to get valid data from HX711")
+            raise ValueError("Failed to get valid data from HX711 during calibration.")
 
         global calibration_factor
         calibration_factor = abs(raw_value / known_weight_grams)
@@ -51,19 +56,23 @@ def calibrate_scale(known_weight_grams):
         print(f"Error during calibration: {e}")
 
 def get_weight_filtered():
+    """Retrieve weight with noise filtering."""
     try:
         readings = []
         for _ in range(15):
             reading = hx.get_weight_mean(readings=10)
             if reading is not None:
                 readings.append(reading)
-            time.sleep(0.1)  # Add delay between readings to reduce noise
+            time.sleep(0.1)
 
-        if len(readings) < 10:
-            raise ValueError("Not enough valid readings for filtering")
+        if len(readings) < 15:
+            raise ValueError("Not enough valid readings for filtering.")
 
         readings.sort()
         filtered_readings = readings[len(readings) // 10: -len(readings) // 10]
+
+        if len(filtered_readings) == 0:
+            raise ValueError("Filtered readings list is empty.")
 
         weight = sum(filtered_readings) / len(filtered_readings)
         weight_kg = weight / 1000
@@ -76,7 +85,10 @@ def get_weight_filtered():
 
 if __name__ == '__main__':
     tare_scale()
-    calibrate_scale(1000)
+    calibrate_scale(1000)  # Known weight in grams
+
     while True:
-        get_weight_filtered()
+        weight = get_weight_filtered()
+        if weight is not None:
+            print(f"Measured weight: {weight:.2f} kg")
         time.sleep(2)
