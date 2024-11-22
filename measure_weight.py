@@ -5,9 +5,9 @@ from hx711 import HX711
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
-hx = HX711(dout_pin=9, pd_sck_pin=10)
+hx = HX711(dout_pin=5, pd_sck_pin=6)
 
-calibration_factor = 102.372
+calibration_factor = 0
 zero_offset = 0
 
 def tare_scale():
