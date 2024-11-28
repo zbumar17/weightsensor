@@ -21,11 +21,11 @@ hx = HX711(DT, SCK)
 try:
     print("Resetting HX711...")
     # Reset HX711
-    #hx.reset()
+    hx.reset()
 
     print("Taring the scale...")
     # Tare the scale (set zero point)
-    #hx.tare()
+    hx.tare()
     print("Tare complete. Place a weight.")
 
     while True:
