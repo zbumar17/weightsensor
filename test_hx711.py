@@ -11,25 +11,20 @@ DT = 5  # Data pin
 SCK = 6  # Clock pin
 
 # Initialize HX711
-hx = HX711(DT, SCK)  # Pass the pins directly without keyword arguments
+hx = HX711(DT, SCK)
 
 try:
     # Reset HX711
     hx.reset()
-
-    # Tare to set zero point
-    print("Taring... Remove all weights.")
+    
+    # Tare the scale (set zero point)
     hx.tare()
-    print("Tare complete. Place weight.")
+    print("Tare complete. Place a weight.")
 
     while True:
-        # Read weight
-        raw_data = hx.get_weight_mean(5)  # Get an average of 5 readings
-        print(f"Weight: {raw_data} grams")
-
-        # Power down the HX711 between readings
-        hx.power_down()
-        hx.power_up()
+        # Get weight reading
+        raw_data = hx.get_raw_data_mean(5)
+        print(f"Raw Data: {raw_data}")
         time.sleep(1)
 
 except KeyboardInterrupt:
