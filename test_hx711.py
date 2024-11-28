@@ -11,7 +11,7 @@ DT = 5  # Data pin
 SCK = 6  # Clock pin
 
 # Initialize HX711
-hx = HX711(DOUT=DT, PD_SCK=SCK)
+hx = HX711(DT, SCK)  # Pass the pins directly without keyword arguments
 
 try:
     # Reset HX711
@@ -35,5 +35,3 @@ try:
 except KeyboardInterrupt:
     print("Exiting...")
     GPIO.cleanup()
-
-
