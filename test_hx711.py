@@ -25,7 +25,7 @@ try:
 
     print("Taring the scale...")
     # Tare the scale (set zero point)
-    hx.tare()
+    #hx.tare()
     print("Tare complete. Place a weight.")
 
     while True:
