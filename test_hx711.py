@@ -10,6 +10,10 @@ GPIO.setmode(GPIO.BCM)
 DT = 5  # Data pin
 SCK = 6  # Clock pin
 
+# Explicitly set up GPIO pins
+GPIO.setup(DT, GPIO.IN)
+GPIO.setup(SCK, GPIO.OUT)
+
 # Initialize HX711
 print("Initializing HX711...")
 hx = HX711(DT, SCK)
@@ -17,7 +21,7 @@ hx = HX711(DT, SCK)
 try:
     print("Resetting HX711...")
     # Reset HX711
-    hx.reset()
+    #hx.reset()
 
     print("Taring the scale...")
     # Tare the scale (set zero point)
